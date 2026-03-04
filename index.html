@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rifa  | Elige tu número</title>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primario: #0369a1;
+            --fondo: #f1f5f9;
+            --libre: #ffffff;
+            --ocupado: #cbd5e1;
+            --texto: #1e293b;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--fondo); margin: 0; padding: 20px; color: var(--texto); }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        
+        header { text-align: center; margin-bottom: 25px; }
+        h1 { margin: 0; color: var(--primario); font-size: 24px; text-transform: uppercase; }
+        .sub { font-size: 14px; color: #64748b; margin-top: 5px; }
+
+        /* Cuadro 10x10 */
+        .grid-rifa {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 6px;
+            background: #e2e8f0;
+            padding: 10px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .n-box {
+            aspect-ratio: 1;
+            background: var(--libre);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid #94a3b8;
+        }
+
+        .n-box:hover:not(.taken) { background: #e0f2fe; transform: scale(1.1); z-index: 5; border-color: var(--primario); }
+        .n-box.taken { background: var(--ocupado); color: #94a3b8; cursor: not-allowed; border: none; position: relative; }
+        .n-box.taken::after { content: "✕"; position: absolute; color: #ef4444; font-size: 12px; opacity: 0.6; }
+
+        /* Modales */
+        .overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+        .modal { background: white; padding: 30px; border-radius: 20px; width: 100%; max-width: 350px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; text-decoration: none; display: inline-block; }
+        .btn-ok { background: var(--primario); color: white; }
+        .btn-cancel { background: #f1f5f9; color: #64748b; }
+        .btn-wa { background: #25d366; color: white; margin-top: 15px; }
+
+        /* Panel Admin (Oculto por defecto) */
+        #panelAdmin { display: none; margin-top: 30px; border-top: 4px double var(--primario); padding-top: 20px; animation: fadeIn 0.5s; }
+        .admin-title { color: #b91c1c; font-weight: 800; text-align: center; background: #fee2e2; padding: 10px; border-radius: 10px; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+        .badge-pago { padding: 6px 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        @media (max-width: 500px) {
+            .grid-rifa { grid-template-columns: repeat(5, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Rifa</h1>
+	<p class="sub"> 2 Celulares (Redmi Note 15 y Rdemi 15) </p>
+	<p class="sub">11 de Abril 2026 Loteria Boyaca</p>
+	<p class="sub">Pago Bre-B (3142447898)</p>
+        <p class="sub">Elige tu número de la suerte</p>
+        <div style="font-size: 11px; margin-top: 10px; display: flex; justify-content: center; gap: 15px;">
+            <span>⚪ Disponible</span>
+            <span>🔘 Ocupado</span>
+        </div>
+    </header>
+
+    <div class="grid-rifa" id="tablero"></div>
+
+    <div id="panelAdmin">
+        <div class="admin-title">🔒 MODO ADMINISTRADOR ACTIVO</div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>N°</th><th>Nombre</th><th>Teléfono</th><th>Pago</th><th>Acción</th></tr>
+                </thead>
+                <tbody id="listaAdmin"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modalCompra" class="overlay">
+    <div class="modal" id="modalContent">
+        <h2 style="margin:0">Número: <span id="selNum" style="color:var(--primario)">--</span></h2>
+        <div id="formRegistro">
+            <p style="color:#64748b; font-size:14px;">Completa para reservar:</p>
+            <input type="text" id="inNombre" placeholder="Tu Nombre">
+            <input type="text" id="inTel" placeholder="Tu WhatsApp">
+            <button class="btn btn-ok" onclick="enviarReserva()">Confirmar Reserva</button>
+            <button class="btn btn-cancel" onclick="cerrarModal()">Cancelar</button>
+        </div>
+        <div id="exitoMensaje" style="display:none;">
+            <div style="font-size: 50px;">🎉</div>
+            <h3>¡Reservado!</h3>
+            <p>Para asegurar tu número, por favor avísanos por WhatsApp:</p>
+            <a id="btnWA" href="#" target="_blank" class="btn btn-wa">Enviar WhatsApp</a>
+            <button class="btn btn-cancel" onclick="cerrarModal()">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyD1du2MrDhQgb_ujJX3phKVefyUNAwI1XA",
+        authDomain: "autorifa-f0375.firebaseapp.com",
+        databaseURL: "https://autorifa-f0375-default-rtdb.firebaseio.com",
+        projectId: "autorifa-f0375",
+        storageBucket: "autorifa-f0375.firebasestorage.app",
+        messagingSenderId: "223773495183",
+        appId: "1:223773495183:web:97fc57c91410fe808cc5fa"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    let numActual = null;
+    let localData = {};
+
+    // VERIFICAR MODO ADMIN EN URL
+    window.onload = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('modo') === 'admin') {
+            document.getElementById('panelAdmin').style.display = 'block';
+        }
+    };
+
+    // Generar tablero
+    const tablero = document.getElementById('tablero');
+    for(let i=0; i<=99; i++){
+        let n = i.toString().padStart(2, '0');
+        let box = document.createElement('div');
+        box.className = 'n-box';
+        box.id = 'box-' + n;
+        box.innerText = n;
+        box.onclick = () => abrirForm(n);
+        tablero.appendChild(box);
+    }
+
+    function abrirForm(n) {
+        if(localData[n]) return;
+        numActual = n;
+        document.getElementById('selNum').innerText = n;
+        document.getElementById('formRegistro').style.display = 'block';
+        document.getElementById('exitoMensaje').style.display = 'none';
+        document.getElementById('modalCompra').style.display = 'flex';
+    }
+
+    function cerrarModal() {
+        document.getElementById('modalCompra').style.display = 'none';
+    }
+
+    function enviarReserva() {
+        const nombre = document.getElementById('inNombre').value.trim();
+        const tel = document.getElementById('inTel').value.trim();
+        if(!nombre || !tel) return alert("Llena tus datos");
+
+        db.ref('boletas/' + numActual).set({ nombre, tel, pago: "NO" })
+        .then(() => {
+            document.getElementById('formRegistro').style.display = 'none';
+            document.getElementById('exitoMensaje').style.display = 'block';
+            
+            // Configurar botón WhatsApp (Pon tu número abajo)
+            const miTelefono = "573142447898"; // <--- CAMBIA ESTO POR TU CELULAR (con código de país)
+            const msj = encodeURIComponent(`¡Hola! Acabo de reservar el número ${numActual} para la Rifa. Mi nombre es ${nombre}.`);
+            document.getElementById('btnWA').href = `https://wa.me/${miTelefono}?text=${msj}`;
+        });
+    }
+
+    db.ref('boletas').on('value', (snap) => {
+        const data = snap.val() || {};
+        localData = data;
+        document.querySelectorAll('.n-box').forEach(b => b.classList.remove('taken'));
+        Object.keys(data).forEach(n => {
+            const el = document.getElementById('box-' + n);
+            if(el) el.classList.add('taken');
+        });
+        renderAdmin(data);
+    });
+
+    function renderAdmin(data) {
+        const tbody = document.getElementById('listaAdmin');
+        tbody.innerHTML = "";
+        Object.keys(data).sort().forEach(n => {
+            const d = data[n];
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${n}</b></td>
+                    <td>${d.nombre}</td>
+                    <td>${d.tel}</td>
+                    <td>
+                        <button class="badge-pago" 
+                            style="background:${d.pago === 'SI' ? '#dcfce7' : '#fee2e2'}; color:${d.pago === 'SI' ? '#166534' : '#991b1b'}"
+                            onclick="cambiarPago('${n}', '${d.pago}')">
+                            ${d.pago === 'SI' ? 'PAGADO' : 'PENDIENTE'}
+                        </button>
+                    </td>
+                    <td><button onclick="eliminar('${n}')" style="border:none; background:none; cursor:pointer;">🗑️</button></td>
+                </tr>`;
+        });
+    }
+
+    function cambiarPago(num, estado) {
+        db.ref('boletas/' + num).update({ pago: estado === 'SI' ? 'NO' : 'SI' });
+    }
+
+    function eliminar(num) {
+        if(confirm("¿Liberar número " + num + "?")) db.ref('boletas/' + num).remove();
+    }
+</script>
+</body>
+</html>
