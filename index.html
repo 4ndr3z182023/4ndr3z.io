@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rifa  | Elige tu número</title>
+    <title>Rifa Pro | Notificaciones WhatsApp</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -15,92 +15,79 @@
             --libre: #ffffff;
             --ocupado: #cbd5e1;
             --texto: #1e293b;
+            --exito: #22c55e;
+            --alerta: #3b82f6;
+            --error: #ef4444;
+            --wa: #25d366;
         }
 
-        body { font-family: 'Inter', sans-serif; background: var(--fondo); margin: 0; padding: 20px; color: var(--texto); }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        body { font-family: 'Inter', sans-serif; background: var(--fondo); margin: 0; padding: 20px; color: var(--texto); line-height: 1.4; }
+        .container { max-width: 950px; margin: 0 auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         
-        header { text-align: center; margin-bottom: 25px; }
-        h1 { margin: 0; color: var(--primario); font-size: 24px; text-transform: uppercase; }
-        .sub { font-size: 14px; color: #64748b; margin-top: 5px; }
+        header { text-align: center; margin-bottom: 25px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; }
+        h1 { margin: 0; color: var(--primario); font-size: 26px; font-weight: 800; }
+        .info-rifa p { margin: 4px 0; font-size: 14px; color: #475569; }
+        .highlight { color: #b91c1c; font-weight: 800; font-size: 18px; margin: 10px 0; }
 
-        /* Cuadro 10x10 */
-        .grid-rifa {
-            display: grid;
-            grid-template-columns: repeat(10, 1fr);
-            gap: 6px;
-            background: #e2e8f0;
-            padding: 10px;
-            border-radius: 15px;
-            margin: 20px 0;
-        }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
+        .stat-card { background: #f8fafc; padding: 15px; border-radius: 15px; border: 1px solid #e2e8f0; text-align: center; }
+        .stat-card b { display: block; font-size: 20px; color: var(--exito); }
+        .stat-card span { font-size: 10px; text-transform: uppercase; font-weight: 700; color: #64748b; }
 
-        .n-box {
-            aspect-ratio: 1;
-            background: var(--libre);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.2s;
-            border: 1px solid #94a3b8;
-        }
+        .grid-rifa { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; background: #e2e8f0; padding: 10px; border-radius: 15px; margin: 20px 0; }
+        .n-box { aspect-ratio: 1; background: var(--libre); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; cursor: pointer; border: 1px solid #94a3b8; transition: 0.2s; }
+        .n-box.taken { background: var(--ocupado); color: #64748b; border: none; cursor: not-allowed; }
+        .n-box.pago-completo { border: 2px solid var(--exito); background: #dcfce7; color: #166534; }
 
-        .n-box:hover:not(.taken) { background: #e0f2fe; transform: scale(1.1); z-index: 5; border-color: var(--primario); }
-        .n-box.taken { background: var(--ocupado); color: #94a3b8; cursor: not-allowed; border: none; position: relative; }
-        .n-box.taken::after { content: "✕"; position: absolute; color: #ef4444; font-size: 12px; opacity: 0.6; }
-
-        /* Modales */
-        .overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
-        .modal { background: white; padding: 30px; border-radius: 20px; width: 100%; max-width: 350px; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
-        
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; text-decoration: none; display: inline-block; }
-        .btn-ok { background: var(--primario); color: white; }
-        .btn-cancel { background: #f1f5f9; color: #64748b; }
-        .btn-wa { background: #25d366; color: white; margin-top: 15px; }
-
-        /* Panel Admin (Oculto por defecto) */
-        #panelAdmin { display: none; margin-top: 30px; border-top: 4px double var(--primario); padding-top: 20px; animation: fadeIn 0.5s; }
-        .admin-title { color: #b91c1c; font-weight: 800; text-align: center; background: #fee2e2; padding: 10px; border-radius: 10px; }
+        /* Admin Table */
+        #panelAdmin { display: none; margin-top: 30px; border-top: 5px double var(--primario); padding-top: 25px; }
         .table-wrap { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 15px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
-        .badge-pago { padding: 6px 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 15px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #f1f5f9; }
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .btn-status { padding: 6px 10px; border-radius: 8px; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 10px; min-width: 85px; }
+        .st-debe { background: var(--error); }
+        .st-paga { background: var(--exito); }
+        .st-abono { background: var(--alerta); }
+        
+        .btn-wa-icon { background: var(--wa); color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-block; }
+        .btn-del { background: none; border: none; cursor: pointer; font-size: 16px; padding: 5px; }
 
-        @media (max-width: 500px) {
-            .grid-rifa { grid-template-columns: repeat(5, 1fr); }
-        }
+        .overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
+        .modal { background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 16px; }
+        .btn-ok { width: 100%; padding: 12px; background: var(--primario); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+
+        @media (max-width: 500px) { .grid-rifa { grid-template-columns: repeat(5, 1fr); } }
     </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <h1>Rifa</h1>
-	<p class="sub"> 2 Celulares (Redmi Note 15 y Rdemi 15) </p>
-	<p class="sub">11 de Abril 2026 Loteria Boyaca</p>
-	<p class="sub">Valor Boleta 25.000, Pago Bre-B (313 4078684)</p>
-        <p class="sub">Elige tu número de la suerte</p>
-        <div style="font-size: 11px; margin-top: 10px; display: flex; justify-content: center; gap: 15px;">
-            <span>⚪ Disponible</span>
-            <span>🔘 Ocupado</span>
+        <h1>RIFA SOLIDARIA</h1>
+        <div class="info-rifa">
+            <p>🎁 2 Celulares (Redmi Note 15 y Redmi 15)</p>
+            <p>🗓️ 11 de Abril 2026 - Lotería de Boyacá</p>
+            <p class="highlight">Valor Boleta: $25.000</p>
+            <p>💳 Pago Bre-B: 313 4078684</p>
         </div>
     </header>
+
+    <div class="stats-grid">
+        <div class="stat-card"><span>Dinero en Caja</span><b id="totalCaja">$0</b></div>
+        <div class="stat-card"><span>Falta por Cobrar</span><b id="totalPendiente">$0</b></div>
+    </div>
 
     <div class="grid-rifa" id="tablero"></div>
 
     <div id="panelAdmin">
-        <div class="admin-title">🔒 MODO ADMINISTRADOR ACTIVO</div>
+        <h3 style="text-align:center; color:#b91c1c; margin:0;">🔐 CONTROL DE COBROS</h3>
+        <p style="font-size: 10px; text-align: center; color: #64748b; margin-bottom: 15px;">Usa 💬 para enviar recordatorio de pago</p>
         <div class="table-wrap">
             <table>
                 <thead>
-                    <tr><th>N°</th><th>Nombre</th><th>Teléfono</th><th>Pago</th><th>Acción</th></tr>
+                    <tr><th>N°</th><th>Cliente</th><th>Monto</th><th>Estado</th><th>Acciones</th></tr>
                 </thead>
                 <tbody id="listaAdmin"></tbody>
             </table>
@@ -109,26 +96,17 @@
 </div>
 
 <div id="modalCompra" class="overlay">
-    <div class="modal" id="modalContent">
-        <h2 style="margin:0">Número: <span id="selNum" style="color:var(--primario)">--</span></h2>
-        <div id="formRegistro">
-            <p style="color:#64748b; font-size:14px;">Completa para reservar:</p>
-            <input type="text" id="inNombre" placeholder="Tu Nombre">
-            <input type="text" id="inTel" placeholder="Tu WhatsApp">
-            <button class="btn btn-ok" onclick="enviarReserva()">Confirmar Reserva</button>
-            <button class="btn btn-cancel" onclick="cerrarModal()">Cancelar</button>
-        </div>
-        <div id="exitoMensaje" style="display:none;">
-            <div style="font-size: 50px;">🎉</div>
-            <h3>¡Reservado!</h3>
-            <p>Para asegurar tu número, por favor avísanos por WhatsApp:</p>
-            <a id="btnWA" href="#" target="_blank" class="btn btn-wa">Enviar WhatsApp</a>
-            <button class="btn btn-cancel" onclick="cerrarModal()">Cerrar</button>
-        </div>
+    <div class="modal">
+        <h2 id="selNumTitle" style="color:var(--primario); margin:0 0 10px 0;">--</h2>
+        <input type="text" id="inNombre" placeholder="Nombre completo">
+        <input type="text" id="inTel" placeholder="WhatsApp (Ej: 313...)">
+        <button class="btn-ok" onclick="guardarReserva()">Reservar Ahora</button>
+        <button onclick="cerrarModal()" style="background:none; border:none; color:gray; cursor:pointer; margin-top:15px;">Volver</button>
     </div>
 </div>
 
 <script>
+    const PRECIO = 25000;
     const firebaseConfig = {
         apiKey: "AIzaSyD1du2MrDhQgb_ujJX3phKVefyUNAwI1XA",
         authDomain: "autorifa-f0375.firebaseapp.com",
@@ -144,98 +122,99 @@
     let numActual = null;
     let localData = {};
 
-    // VERIFICAR MODO ADMIN EN URL
-    window.onload = () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('modo') === 'admin') {
-            document.getElementById('panelAdmin').style.display = 'block';
-        }
-    };
+    if (new URLSearchParams(window.location.search).get('modo') === 'admin') 
+        document.getElementById('panelAdmin').style.display = 'block';
 
-    // Generar tablero
     const tablero = document.getElementById('tablero');
     for(let i=0; i<=99; i++){
         let n = i.toString().padStart(2, '0');
         let box = document.createElement('div');
-        box.className = 'n-box';
-        box.id = 'box-' + n;
-        box.innerText = n;
-        box.onclick = () => abrirForm(n);
+        box.className = 'n-box'; box.id = 'box-' + n; box.innerText = n;
+        box.onclick = () => { if(!localData[n]) { numActual=n; document.getElementById('selNumTitle').innerText="Número: "+n; document.getElementById('modalCompra').style.display='flex'; } };
         tablero.appendChild(box);
     }
 
-    function abrirForm(n) {
-        if(localData[n]) return;
-        numActual = n;
-        document.getElementById('selNum').innerText = n;
-        document.getElementById('formRegistro').style.display = 'block';
-        document.getElementById('exitoMensaje').style.display = 'none';
-        document.getElementById('modalCompra').style.display = 'flex';
-    }
+    function cerrarModal() { document.getElementById('modalCompra').style.display = 'none'; }
 
-    function cerrarModal() {
-        document.getElementById('modalCompra').style.display = 'none';
-    }
-
-    function enviarReserva() {
+    function guardarReserva() {
         const nombre = document.getElementById('inNombre').value.trim();
         const tel = document.getElementById('inTel').value.trim();
-        if(!nombre || !tel) return alert("Llena tus datos");
-
-        db.ref('boletas/' + numActual).set({ nombre, tel, pago: "NO" })
-        .then(() => {
-            document.getElementById('formRegistro').style.display = 'none';
-            document.getElementById('exitoMensaje').style.display = 'block';
-            
-            // Configurar botón WhatsApp (Pon tu número abajo)
-            const miTelefono = "573142447898"; // <--- CAMBIA ESTO POR TU CELULAR (con código de país)
-            const msj = encodeURIComponent(`¡Hola! Acabo de reservar el número ${numActual} para la Rifa. Mi nombre es ${nombre}.`);
-            document.getElementById('btnWA').href = `https://wa.me/${miTelefono}?text=${msj}`;
+        if(!nombre || !tel) return alert("Llena todos los campos");
+        
+        db.ref('boletas/' + numActual).set({ nombre, tel, abono: 0 }).then(() => {
+            cerrarModal();
+            document.getElementById('inNombre').value = ""; document.getElementById('inTel').value = "";
         });
     }
 
     db.ref('boletas').on('value', (snap) => {
         const data = snap.val() || {};
         localData = data;
-        document.querySelectorAll('.n-box').forEach(b => b.classList.remove('taken'));
-        Object.keys(data).forEach(n => {
-            const el = document.getElementById('box-' + n);
-            if(el) el.classList.add('taken');
-        });
-        renderAdmin(data);
-    });
-
-    function renderAdmin(data) {
+        let recaudado = 0;
+        document.querySelectorAll('.n-box').forEach(b => b.classList.remove('taken', 'pago-completo'));
         const tbody = document.getElementById('listaAdmin');
         tbody.innerHTML = "";
+
         Object.keys(data).sort().forEach(n => {
             const d = data[n];
+            const abono = parseInt(d.abono) || 0;
+            const falta = PRECIO - abono;
+            recaudado += abono;
+
+            const el = document.getElementById('box-' + n);
+            if(el) {
+                el.classList.add('taken');
+                if(abono >= PRECIO) el.classList.add('pago-completo');
+            }
+
+            let btnClass = "st-debe", txt = "DEBE TODO";
+            if(abono >= PRECIO) { btnClass = "st-paga"; txt = "PAGADO"; }
+            else if(abono > 0) { btnClass = "st-abono"; txt = `$${abono.toLocaleString()}`; }
+
             tbody.innerHTML += `
                 <tr>
                     <td><b>${n}</b></td>
                     <td>${d.nombre}</td>
-                    <td>${d.tel}</td>
-                    <td>
-                        <button class="badge-pago" 
-                            style="background:${d.pago === 'SI' ? '#dcfce7' : '#fee2e2'}; color:${d.pago === 'SI' ? '#166534' : '#991b1b'}"
-                            onclick="cambiarPago('${n}', '${d.pago}')">
-                            ${d.pago === 'SI' ? 'PAGADO' : 'PENDIENTE'}
-                        </button>
+                    <td>$${abono.toLocaleString()}</td>
+                    <td><button class="btn-status ${btnClass}" onclick="rotarEstado('${n}', ${abono})">${txt}</button></td>
+                    <td style="white-space:nowrap">
+                        <button class="btn-wa-icon" onclick="notificarWA('${n}')">💬</button>
+                        <button class="btn-del" onclick="eliminar('${n}')">🗑️</button>
                     </td>
-                    <td><button onclick="eliminar('${n}')" style="border:none; background:none; cursor:pointer;">🗑️</button></td>
                 </tr>`;
         });
+
+        document.getElementById('totalCaja').innerText = `$${recaudado.toLocaleString()}`;
+        document.getElementById('totalPendiente').innerText = `$${((Object.keys(data).length * PRECIO) - recaudado).toLocaleString()}`;
+    });
+
+    function rotarEstado(n, actual) {
+        if(actual === 0) db.ref('boletas/' + n).update({ abono: PRECIO });
+        else if(actual >= PRECIO) {
+            const v = prompt(`¿Cuánto abonó el número ${n}?`, "10000");
+            if(v !== null) db.ref('boletas/' + n).update({ abono: parseInt(v) || 0 });
+        } else db.ref('boletas/' + n).update({ abono: 0 });
     }
 
-    function cambiarPago(num, estado) {
-        db.ref('boletas/' + num).update({ pago: estado === 'SI' ? 'NO' : 'SI' });
+    function notificarWA(n) {
+        const d = localData[n];
+        const abono = parseInt(d.abono) || 0;
+        const falta = PRECIO - abono;
+        let msj = "";
+
+        if(abono >= PRECIO) {
+            msj = `¡Hola ${d.nombre}! Te confirmo que tu número ${n} para la rifa de los 2 celulares está TOTALMENTE PAGADO. ¡Mucha suerte! 🍀`;
+        } else if(abono > 0) {
+            msj = `¡Hola ${d.nombre}! Paso a recordarte tu número ${n} de la rifa. Has abonado $${abono.toLocaleString()} y tienes un saldo pendiente de *$${falta.toLocaleString()}*. El sorteo es el 11 de Abril. ¡Gracias! 😊`;
+        } else {
+            msj = `¡Hola ${d.nombre}! Te escribo para recordarte la reserva del número ${n} para la rifa de los 2 celulares. El valor es de *$${PRECIO.toLocaleString()}*. ¿Deseas confirmar tu cupo? 😊`;
+        }
+
+        const link = `https://wa.me/57${d.tel.replace(/\s+/g, '')}?text=${encodeURIComponent(msj)}`;
+        window.open(link, '_blank');
     }
 
-    function eliminar(num) {
-        if(confirm("¿Liberar número " + num + "?")) db.ref('boletas/' + num).remove();
-    }
+    function eliminar(n) { if(confirm(`¿Liberar el número ${n}?`)) db.ref('boletas/' + n).remove(); }
 </script>
 </body>
-
 </html>
-
