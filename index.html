@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rifa Pro | Notificaciones WhatsApp</title>
+    <title>Rifa Pro | Gestión Privada</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -29,6 +29,7 @@
         .info-rifa p { margin: 4px 0; font-size: 14px; color: #475569; }
         .highlight { color: #b91c1c; font-weight: 800; font-size: 18px; margin: 10px 0; }
 
+        /* Contenedor de estadísticas */
         .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
         .stat-card { background: #f8fafc; padding: 15px; border-radius: 15px; border: 1px solid #e2e8f0; text-align: center; }
         .stat-card b { display: block; font-size: 20px; color: var(--exito); }
@@ -39,8 +40,14 @@
         .n-box.taken { background: var(--ocupado); color: #64748b; border: none; cursor: not-allowed; }
         .n-box.pago-completo { border: 2px solid var(--exito); background: #dcfce7; color: #166534; }
 
-        /* Admin Table */
-        #panelAdmin { display: none; margin-top: 30px; border-top: 5px double var(--primario); padding-top: 25px; }
+        /* PANEL ADMIN (OCULTO POR DEFECTO) */
+        #panelAdmin { 
+            display: none; 
+            margin-top: 30px; 
+            border-top: 5px double var(--primario); 
+            padding-top: 25px; 
+        }
+
         .table-wrap { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 15px; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #f1f5f9; }
@@ -74,20 +81,28 @@
         </div>
     </header>
 
-    <div class="stats-grid">
-        <div class="stat-card"><span>Dinero en Caja</span><b id="totalCaja">$0</b></div>
-        <div class="stat-card"><span>Falta por Cobrar</span><b id="totalPendiente">$0</b></div>
-    </div>
-
     <div class="grid-rifa" id="tablero"></div>
 
     <div id="panelAdmin">
-        <h3 style="text-align:center; color:#b91c1c; margin:0;">🔐 CONTROL DE COBROS</h3>
-        <p style="font-size: 10px; text-align: center; color: #64748b; margin-bottom: 15px;">Usa 💬 para enviar recordatorio de pago</p>
+        <h3 style="text-align:center; color:#b91c1c; margin:0;">🔐 PANEL DE ADMINISTRACIÓN</h3>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span>Dinero en Caja</span>
+                <b id="totalCaja">$0</b>
+            </div>
+            <div class="stat-card">
+                <span>Falta por Cobrar</span>
+                <b id="totalPendiente">$0</b>
+            </div>
+        </div>
+
+        <p style="font-size: 10px; text-align: center; color: #64748b; margin-bottom: 15px;">Gestión de boletas y recordatorios</p>
+        
         <div class="table-wrap">
             <table>
                 <thead>
-                    <tr><th>N°</th><th>Cliente</th><th>Monto</th><th>Estado</th><th>Acciones</th></tr>
+                    <tr><th>N°</th><th>Cliente</th><th>Abono</th><th>Estado</th><th>Acciones</th></tr>
                 </thead>
                 <tbody id="listaAdmin"></tbody>
             </table>
@@ -122,15 +137,24 @@
     let numActual = null;
     let localData = {};
 
-    if (new URLSearchParams(window.location.search).get('modo') === 'admin') 
+    // Activar panel solo si la URL tiene ?modo=admin
+    const isAdmin = new URLSearchParams(window.location.search).get('modo') === 'admin';
+    if (isAdmin) {
         document.getElementById('panelAdmin').style.display = 'block';
+    }
 
     const tablero = document.getElementById('tablero');
     for(let i=0; i<=99; i++){
         let n = i.toString().padStart(2, '0');
         let box = document.createElement('div');
         box.className = 'n-box'; box.id = 'box-' + n; box.innerText = n;
-        box.onclick = () => { if(!localData[n]) { numActual=n; document.getElementById('selNumTitle').innerText="Número: "+n; document.getElementById('modalCompra').style.display='flex'; } };
+        box.onclick = () => { 
+            if(!localData[n]) { 
+                numActual=n; 
+                document.getElementById('selNumTitle').innerText="Número: "+n; 
+                document.getElementById('modalCompra').style.display='flex'; 
+            } 
+        };
         tablero.appendChild(box);
     }
 
@@ -151,6 +175,7 @@
         const data = snap.val() || {};
         localData = data;
         let recaudado = 0;
+        
         document.querySelectorAll('.n-box').forEach(b => b.classList.remove('taken', 'pago-completo'));
         const tbody = document.getElementById('listaAdmin');
         tbody.innerHTML = "";
@@ -158,7 +183,6 @@
         Object.keys(data).sort().forEach(n => {
             const d = data[n];
             const abono = parseInt(d.abono) || 0;
-            const falta = PRECIO - abono;
             recaudado += abono;
 
             const el = document.getElementById('box-' + n);
@@ -167,23 +191,27 @@
                 if(abono >= PRECIO) el.classList.add('pago-completo');
             }
 
-            let btnClass = "st-debe", txt = "DEBE TODO";
-            if(abono >= PRECIO) { btnClass = "st-paga"; txt = "PAGADO"; }
-            else if(abono > 0) { btnClass = "st-abono"; txt = `$${abono.toLocaleString()}`; }
+            // Solo generar filas de tabla si somos admin
+            if(isAdmin) {
+                let btnClass = "st-debe", txt = "DEBE TODO";
+                if(abono >= PRECIO) { btnClass = "st-paga"; txt = "PAGADO"; }
+                else if(abono > 0) { btnClass = "st-abono"; txt = `$${abono.toLocaleString()}`; }
 
-            tbody.innerHTML += `
-                <tr>
-                    <td><b>${n}</b></td>
-                    <td>${d.nombre}</td>
-                    <td>$${abono.toLocaleString()}</td>
-                    <td><button class="btn-status ${btnClass}" onclick="rotarEstado('${n}', ${abono})">${txt}</button></td>
-                    <td style="white-space:nowrap">
-                        <button class="btn-wa-icon" onclick="notificarWA('${n}')">💬</button>
-                        <button class="btn-del" onclick="eliminar('${n}')">🗑️</button>
-                    </td>
-                </tr>`;
+                tbody.innerHTML += `
+                    <tr>
+                        <td><b>${n}</b></td>
+                        <td>${d.nombre}</td>
+                        <td>$${abono.toLocaleString()}</td>
+                        <td><button class="btn-status ${btnClass}" onclick="rotarEstado('${n}', ${abono})">${txt}</button></td>
+                        <td style="white-space:nowrap">
+                            <button class="btn-wa-icon" onclick="notificarWA('${n}')">💬</button>
+                            <button class="btn-del" onclick="eliminar('${n}')">🗑️</button>
+                        </td>
+                    </tr>`;
+            }
         });
 
+        // Actualizar números de dinero (solo visibles si el panelAdmin está activo)
         document.getElementById('totalCaja').innerText = `$${recaudado.toLocaleString()}`;
         document.getElementById('totalPendiente').innerText = `$${((Object.keys(data).length * PRECIO) - recaudado).toLocaleString()}`;
     });
@@ -203,14 +231,14 @@
         let msj = "";
 
         if(abono >= PRECIO) {
-            msj = `¡Hola ${d.nombre}! Te confirmo que tu número ${n} para la rifa de los 2 celulares está TOTALMENTE PAGADO. ¡Mucha suerte! 🍀`;
+            msj = `¡Hola ${d.nombre}! Te confirmo que tu número ${n} está PAGADO. ¡Suerte! 🍀`;
         } else if(abono > 0) {
-            msj = `¡Hola ${d.nombre}! Paso a recordarte tu número ${n} de la rifa. Has abonado $${abono.toLocaleString()} y tienes un saldo pendiente de *$${falta.toLocaleString()}*. El sorteo es el 11 de Abril. ¡Gracias! 😊`;
+            msj = `¡Hola ${d.nombre}! Recordatorio número ${n}. Abono: $${abono.toLocaleString()}. Pendiente: *$${falta.toLocaleString()}*.`;
         } else {
-            msj = `¡Hola ${d.nombre}! Te escribo para recordarte la reserva del número ${n} para la rifa de los 2 celulares. El valor es de *$${PRECIO.toLocaleString()}*. ¿Deseas confirmar tu cupo? 😊`;
+            msj = `¡Hola ${d.nombre}! Recordatorio de reserva del número ${n}. Valor: *$${PRECIO.toLocaleString()}*.`;
         }
 
-        const link = `https://wa.me/57${d.tel.replace(/\s+/g, '')}?text=${encodeURIComponent(msj)}`;
+        const link = `https://wa.me/57${d.tel.replace(/\D/g, '')}?text=${encodeURIComponent(msj)}`;
         window.open(link, '_blank');
     }
 
