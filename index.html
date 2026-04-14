@@ -162,7 +162,7 @@
         
         db.ref('boletas/' + numActual).set({ nombre, tel, abono: 0 }).then(() => {
             cerrarModal();
-            const msjAdmin = `¡Hola! Acabo de reservar el número ${numActual} Mi nombre es ${nombre}, Tel: ${tel}`;
+            const msjAdmin = `¡Hola! Acabo de reservar el número *${numActual}* Mi nombre es ${nombre}, Tel: ${tel}`;
             const linkNotif = `https://wa.me/57${MI_WHATSAPP}?text=${encodeURIComponent(msjAdmin)}`;
             document.getElementById('inNombre').value = ""; document.getElementById('inTel').value = "";
             window.open(linkNotif, '_blank');
