@@ -202,7 +202,7 @@
         
         db.ref('boletas/' + numActual).set({ nombre, tel, abono: 0 }).then(() => {
             cerrarModal();
-            const msj = `¡GOL! Reservé el ${numActual}. Soy ${nombre}`;
+            const msj = `¡GOL!`¡Hola! Acabo de reservar el número *${numActual}* Mi nombre es ${nombre}, Tel: ${tel}`;
             window.open(`https://wa.me/57${MI_WHATSAPP}?text=${encodeURIComponent(msj)}`, '_blank');
         });
     }
