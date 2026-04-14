@@ -19,6 +19,7 @@
             --alerta: #3b82f6;
             --error: #ef4444;
             --wa: #25d366;
+            --oro: #f59e0b;
         }
 
         body { font-family: 'Inter', sans-serif; background: var(--fondo); margin: 0; padding: 20px; color: var(--texto); line-height: 1.4; }
@@ -53,6 +54,7 @@
         .btn-wa-icon { background: var(--wa); color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-block; }
         .btn-edit { background: #64748b; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; }
         .btn-del { background: none; border: none; cursor: pointer; font-size: 16px; padding: 5px; }
+        .btn-ganador { background: var(--oro); color: white; border: none; padding: 12px 25px; border-radius: 12px; font-weight: 800; cursor: pointer; display: block; margin: 15px auto; box-shadow: 0 4px 10px rgba(245,158,11,0.3); }
 
         .overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
         .modal { background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; }
@@ -80,6 +82,8 @@
     <div id="panelAdmin">
         <h3 style="text-align:center; color:#b91c1c; margin:0;">🔐 PANEL DE ADMINISTRACIÓN</h3>
         
+        <button class="btn-ganador" onclick="verificarGanador()">🏆 VERIFICAR RESULTADO</button>
+
         <div class="stats-grid">
             <div class="stat-card">
                 <span>Dinero en Caja</span>
@@ -114,7 +118,7 @@
 
 <script>
     const PRECIO = 25000;
-    const MI_WHATSAPP = "3142447898"; // Tu número para notificaciones
+    const MI_WHATSAPP = "3142447898"; 
     
     const firebaseConfig = {
         apiKey: "AIzaSyD1du2MrDhQgb_ujJX3phKVefyUNAwI1XA",
@@ -158,14 +162,9 @@
         
         db.ref('boletas/' + numActual).set({ nombre, tel, abono: 0 }).then(() => {
             cerrarModal();
-            
-            // Notificación al administrador
-            const msjAdmin = `¡Hola! Acabo de reservar el número ${numActual}, Mi nombre es ${nombre}, Tel: ${tel}`;
+            const msjAdmin = `✅ *NUEVA RESERVA*\n------------------\n🔢 Número: ${numActual}\n👤 Cliente: ${nombre}\n📱 Tel: ${tel}`;
             const linkNotif = `https://wa.me/57${MI_WHATSAPP}?text=${encodeURIComponent(msjAdmin)}`;
-            
-            document.getElementById('inNombre').value = ""; 
-            document.getElementById('inTel').value = "";
-            
+            document.getElementById('inNombre').value = ""; document.getElementById('inTel').value = "";
             window.open(linkNotif, '_blank');
         });
     }
@@ -174,7 +173,6 @@
         const data = snap.val() || {};
         localData = data;
         let recaudado = 0;
-        
         document.querySelectorAll('.n-box').forEach(b => b.classList.remove('taken', 'pago-completo'));
         const tbody = document.getElementById('listaAdmin');
         tbody.innerHTML = "";
@@ -183,18 +181,15 @@
             const d = data[n];
             const abono = parseInt(d.abono) || 0;
             recaudado += abono;
-
             const el = document.getElementById('box-' + n);
             if(el) {
                 el.classList.add('taken');
                 if(abono >= PRECIO) el.classList.add('pago-completo');
             }
-
             if(isAdmin) {
                 let btnClass = "st-debe", txt = "DEBE TODO";
                 if(abono >= PRECIO) { btnClass = "st-paga"; txt = "PAGADO"; }
                 else if(abono > 0) { btnClass = "st-abono"; txt = `$${abono.toLocaleString()}`; }
-
                 tbody.innerHTML += `
                     <tr>
                         <td><b>${n}</b></td>
@@ -209,7 +204,6 @@
                     </tr>`;
             }
         });
-
         document.getElementById('totalCaja').innerText = `$${recaudado.toLocaleString()}`;
         document.getElementById('totalPendiente').innerText = `$${((Object.keys(data).length * PRECIO) - recaudado).toLocaleString()}`;
     });
@@ -219,6 +213,22 @@
         const nuevoNombre = prompt(`Editar nombre para el número ${n}:`, d.nombre);
         if (nuevoNombre !== null && nuevoNombre.trim() !== "") {
             db.ref('boletas/' + n).update({ nombre: nuevoNombre.trim() });
+        }
+    }
+
+    function verificarGanador() {
+        const numGanador = prompt("Ingrese las últimas 2 cifras del premio mayor:");
+        if (numGanador !== null) {
+            const n = numGanador.padStart(2, '0');
+            const ganador = localData[n];
+            if (ganador) {
+                const pago = (parseInt(ganador.abono) >= PRECIO) ? "✅ PAGADA" : "⚠️ DEBE ($" + ganador.abono + ")";
+                alert(`🎊 ¡GANADOR ENCONTRADO! 🎊\n\nNúmero: ${n}\nNombre: ${ganador.nombre}\nEstado: ${pago}\nTel: ${ganador.tel}`);
+                const filas = document.querySelectorAll('#listaAdmin tr');
+                filas.forEach(f => {
+                    if(f.cells[0].innerText === n) { f.style.background = "#fef3c7"; f.scrollIntoView({behavior:'smooth'}); }
+                });
+            } else { alert(`El número ${n} no ha sido vendido.`); }
         }
     }
 
@@ -234,18 +244,8 @@
         const d = localData[n];
         const abono = parseInt(d.abono) || 0;
         const falta = PRECIO - abono;
-        let msj = "";
-
-        if(abono >= PRECIO) {
-            msj = `¡Hola ${d.nombre}! Te confirmo que tu número ${n} está PAGADO. ¡Suerte! 🍀`;
-        } else if(abono > 0) {
-            msj = `¡Hola ${d.nombre}! Recordatorio número ${n}. Abono: $${abono.toLocaleString()}. Pendiente: *$${falta.toLocaleString()}*.`;
-        } else {
-            msj = `¡Hola ${d.nombre}! Recordatorio de reserva del número ${n}. Valor: *$${PRECIO.toLocaleString()}*.`;
-        }
-
-        const link = `https://wa.me/57${d.tel.replace(/\D/g, '')}?text=${encodeURIComponent(msj)}`;
-        window.open(link, '_blank');
+        let msj = (abono >= PRECIO) ? `¡Hola ${d.nombre}! Tu número ${n} está PAGADO.🍀` : `¡Hola ${d.nombre}! Recordatorio número ${n}. Pendiente: *$${falta.toLocaleString()}*.`;
+        window.open(`https://wa.me/57${d.tel.replace(/\D/g, '')}?text=${encodeURIComponent(msj)}`, '_blank');
     }
 
     function eliminar(n) { if(confirm(`¿Liberar el número ${n}?`)) db.ref('boletas/' + n).remove(); }
