@@ -131,9 +131,14 @@
     <div class="grid-rifa" id="tablero"></div>
 
     <div id="panelAdmin">
-        <h3 style="text-align:center; color:var(--error);">🔐 GESTIÓN DE VENTAS</h3>
-        <div class="stats-grid">
-            <div class="stat-card"><span>En Caja</span><b id="totalCaja">$0</b></div>
+        <h3 style="text-align:center; color:#b91c1c; margin:0;">🔐 PANEL DE ADMINISTRACIÓN</h3>
+    
+    <div style="text-align: center; margin: 15px 0;">
+        <button onclick="verificarGanador()" style="background: #f59e0b; color: white; border: none; padding: 10px 20px; border-radius: 12px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 10px rgba(245,158,11,0.3);">
+            🏆 VERIFICAR RESULTADO
+        </button>
+	<div class="stats-grid">
+    	    <div class="stat-card"><span>En Caja</span><b id="totalCaja">$0</b></div>
             <div class="stat-card"><span>Pendiente</span><b id="totalPendiente">$0</b></div>
         </div>
         <div class="table-wrap">
@@ -155,11 +160,11 @@
     </div>
 </div>
 
+
 <script>
-    const PRECIO = 15000;
+    const PRECIO = 25000;
     const MI_WHATSAPP = "3142447898"; 
     
-    // Configuración Firebase (la misma que ya tenías)
     const firebaseConfig = {
         apiKey: "AIzaSyD1du2MrDhQgb_ujJX3phKVefyUNAwI1XA",
         authDomain: "autorifa-f0375.firebaseapp.com",
@@ -198,12 +203,14 @@
     function guardarReserva() {
         const nombre = document.getElementById('inNombre').value.trim();
         const tel = document.getElementById('inTel').value.trim();
-        if(!nombre || !tel) return alert("Llena los datos");
+        if(!nombre || !tel) return alert("Llena todos los campos");
         
         db.ref('boletas/' + numActual).set({ nombre, tel, abono: 0 }).then(() => {
             cerrarModal();
-            const msj = `¡GOL! Acabo de reservar el número *${numActual}* Mi nombre es ${nombre}, Tel: ${tel}`;
-            window.open(`https://wa.me/57${MI_WHATSAPP}?text=${encodeURIComponent(msj)}`, '_blank');
+            const msjAdmin = `✅ *NUEVA RESERVA*\n------------------\n🔢 Número: ${numActual}\n👤 Cliente: ${nombre}\n📱 Tel: ${tel}`;
+            const linkNotif = `https://wa.me/57${MI_WHATSAPP}?text=${encodeURIComponent(msjAdmin)}`;
+            document.getElementById('inNombre').value = ""; document.getElementById('inTel').value = "";
+            window.open(linkNotif, '_blank');
         });
     }
 
@@ -225,24 +232,68 @@
                 if(abono >= PRECIO) el.classList.add('pago-completo');
             }
             if(isAdmin) {
-                let btnClass = abono >= PRECIO ? "st-paga" : (abono > 0 ? "st-abono" : "st-debe");
-                tbody.innerHTML += `<tr>
-                    <td><b>${n}</b></td><td>${d.nombre}</td><td>$${abono}</td>
-                    <td><button class="btn-status ${btnClass}" onclick="rotarEstado('${n}', ${abono})">${abono >= PRECIO ? 'PAGO' : 'PEND'}</button></td>
-                    <td><button onclick="eliminar('${n}')">🗑️</button></td>
-                </tr>`;
+                let btnClass = "st-debe", txt = "DEBE TODO";
+                if(abono >= PRECIO) { btnClass = "st-paga"; txt = "PAGADO"; }
+                else if(abono > 0) { btnClass = "st-abono"; txt = `$${abono.toLocaleString()}`; }
+                tbody.innerHTML += `
+                    <tr>
+                        <td><b>${n}</b></td>
+                        <td>${d.nombre}</td>
+                        <td>$${abono.toLocaleString()}</td>
+                        <td><button class="btn-status ${btnClass}" onclick="rotarEstado('${n}', ${abono})">${txt}</button></td>
+                        <td style="white-space:nowrap">
+                            <button class="btn-edit" onclick="editarNombre('${n}')">✏️</button>
+                            <button class="btn-wa-icon" onclick="notificarWA('${n}')">💬</button>
+                            <button class="btn-del" onclick="eliminar('${n}')">🗑️</button>
+                        </td>
+                    </tr>`;
             }
         });
         document.getElementById('totalCaja').innerText = `$${recaudado.toLocaleString()}`;
         document.getElementById('totalPendiente').innerText = `$${((Object.keys(data).length * PRECIO) - recaudado).toLocaleString()}`;
     });
 
-    function rotarEstado(n, actual) {
-        const nuevo = actual >= PRECIO ? 0 : PRECIO;
-        db.ref('boletas/' + n).update({ abono: nuevo });
+    function editarNombre(n) {
+        const d = localData[n];
+        const nuevoNombre = prompt(`Editar nombre para el número ${n}:`, d.nombre);
+        if (nuevoNombre !== null && nuevoNombre.trim() !== "") {
+            db.ref('boletas/' + n).update({ nombre: nuevoNombre.trim() });
+        }
     }
 
-    function eliminar(n) { if(confirm(`¿Liberar el ${n}?`)) db.ref('boletas/' + n).remove(); }
+    function verificarGanador() {
+        const numGanador = prompt("Ingrese las últimas 2 cifras del premio mayor:");
+        if (numGanador !== null) {
+            const n = numGanador.padStart(2, '0');
+            const ganador = localData[n];
+            if (ganador) {
+                const pago = (parseInt(ganador.abono) >= PRECIO) ? "✅ PAGADA" : "⚠️ DEBE ($" + ganador.abono + ")";
+                alert(`🎊 ¡GANADOR ENCONTRADO! 🎊\n\nNúmero: ${n}\nNombre: ${ganador.nombre}\nEstado: ${pago}\nTel: ${ganador.tel}`);
+                const filas = document.querySelectorAll('#listaAdmin tr');
+                filas.forEach(f => {
+                    if(f.cells[0].innerText === n) { f.style.background = "#fef3c7"; f.scrollIntoView({behavior:'smooth'}); }
+                });
+            } else { alert(`El número ${n} no ha sido vendido.`); }
+        }
+    }
+
+    function rotarEstado(n, actual) {
+        if(actual === 0) db.ref('boletas/' + n).update({ abono: PRECIO });
+        else if(actual >= PRECIO) {
+            const v = prompt(`¿Cuánto abonó el número ${n}?`, "10000");
+            if(v !== null) db.ref('boletas/' + n).update({ abono: parseInt(v) || 0 });
+        } else db.ref('boletas/' + n).update({ abono: 0 });
+    }
+
+    function notificarWA(n) {
+        const d = localData[n];
+        const abono = parseInt(d.abono) || 0;
+        const falta = PRECIO - abono;
+        let msj = (abono >= PRECIO) ? `¡Hola ${d.nombre}! Tu número ${n} está PAGADO.🍀` : `¡Hola ${d.nombre}! Recordatorio número ${n}. Pendiente: *$${falta.toLocaleString()}*.`;
+        window.open(`https://wa.me/57${d.tel.replace(/\D/g, '')}?text=${encodeURIComponent(msj)}`, '_blank');
+    }
+
+    function eliminar(n) { if(confirm(`¿Liberar el número ${n}?`)) db.ref('boletas/' + n).remove(); }
 </script>
 </body>
 </html>
