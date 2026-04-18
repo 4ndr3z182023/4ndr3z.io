@@ -180,7 +180,7 @@
         if(!nombre) return alert("Ingresa un nombre");
         db.ref('boletas/' + numTemp).set({ nombre, tel: tel||'', abono: 0 }).then(() => {
             document.getElementById('modalCompra').style.display='none';
-            if(configActual.wa) window.open(`https://wa.me/57${configActual.wa}?text=Hola! Reservé el ${numTemp}`, '_blank');
+            if(configActual.wa) window.open(`https://wa.me/57${configActual.wa}?text=`✅ *NUEVA RESERVA*\n------------------\n🔢 Número: ${numActual}\n👤 Cliente: ${nombre}\n📱 Tel: ${tel}`;
         });
     }
 
