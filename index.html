@@ -3,168 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rifa Pro | Selección Colombia</title>
+    <title>Rifa Pro | Gestión Total con Verificador</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-storage-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --primario: #0369a1;
-            --fondo: #f1f5f9;
-            --tarjeta: #ffffff;
-            --libre: #ffffff;
-            --texto: #1e293b;
-            --texto-secundario: #475569;
-            --borde: #e2e8f0;
-            --exito: #22c55e;
-            --alerta: #3b82f6;
-            --error: #ef4444;
-            --wa: #25d366;
-            --oro: #f59e0b;
-            /* URL del balón (puedes cambiarla por una propia) */
-            --img-balon: url('https://cdn-icons-png.flaticon.com/512/53/53283.png');
+            --primario: #0369a1; --fondo: #f1f5f9; --tarjeta: #ffffff;
+            --texto: #1e293b; --texto-secundario: #475569; --borde: #e2e8f0;
+            --exito: #22c55e; --error: #ef4444; --oro: #f59e0b; --alerta: #3b82f6;
         }
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --fondo: #0f172a;
-                --tarjeta: #1e293b;
-                --libre: #334155;
-                --texto: #f1f5f9;
-                --texto-secundario: #94a3b8;
-                --borde: #334155;
-                --primario: #38bdf8;
-            }
-        }
-
-        body { font-family: 'Inter', sans-serif; background: var(--fondo); margin: 0; padding: 20px; color: var(--texto); transition: 0.3s; }
-        .container { max-width: 950px; margin: 0 auto; background: var(--tarjeta); padding: 25px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        body { font-family: 'Inter', sans-serif; background: var(--fondo); margin: 0; padding: 15px; color: var(--texto); }
+        .container { max-width: 900px; margin: 0 auto; background: var(--tarjeta); padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         
-        header { text-align: center; margin-bottom: 25px; border-bottom: 2px solid var(--borde); padding-bottom: 20px; }
-        h1 { margin: 0; color: var(--primario); font-size: 26px; font-weight: 800; }
-        .info-rifa p { margin: 4px 0; font-size: 14px; color: var(--texto-secundario); }
-        .highlight { color: #ef4444; font-weight: 800; font-size: 18px; margin: 10px 0; }
+        header { text-align: center; border-bottom: 2px solid var(--borde); padding-bottom: 20px; margin-bottom: 20px; }
+        h1 { color: var(--primario); font-size: 24px; font-weight: 800; margin: 0; text-transform: uppercase; }
 
-        .grid-rifa { 
-            display: grid; 
-            grid-template-columns: repeat(10, 1fr); 
-            gap: 8px; 
-            background: var(--borde); 
-            padding: 15px; 
-            border-radius: 20px; 
-            margin: 20px 0; 
-        }
+        .img-premio-box { width: 100%; max-width: 350px; margin: 15px auto; border-radius: 15px; overflow: hidden; display: none; border: 3px solid var(--borde); }
+        .img-premio-box img { width: 100%; height: auto; display: block; }
 
-        .n-box { 
-            aspect-ratio: 1; 
-            background: var(--libre); 
-            color: var(--texto);
-            border-radius: 12px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 14px; 
-            font-weight: 800; 
-            cursor: pointer; 
-            border: 1px solid var(--borde); 
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
+        .info-rifa p { margin: 5px 0; font-size: 14px; }
+        .highlight { color: var(--error); font-weight: 800; font-size: 22px; margin: 10px 0; }
 
-        /* ESTILO CUANDO EL NÚMERO ESTÁ OCUPADO (BALÓN) */
-        .n-box.taken { 
-            background-image: var(--img-balon);
-            background-size: 80%;
-            background-repeat: no-repeat;
-            background-position: center;
-            background-color: transparent;
-            border: none;
-            color: #000; /* Texto negro para que resalte en el balón blanco */
-            cursor: not-allowed;
-            filter: grayscale(0.3) opacity(0.8);
-        }
+        /* TABLERO */
+        .grid-rifa { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; background: var(--borde); padding: 10px; border-radius: 15px; }
+        .n-box { aspect-ratio: 1; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; cursor: pointer; border: 1px solid #ccc; transition: 0.2s; }
+        
+        .n-box.taken { background-color: #fee2e2; color: var(--error); border-color: var(--error); }
+        .n-box.pago-completo { background-color: #dcfce7 !important; color: #166534 !important; border: 2px solid var(--exito) !important; }
+        .n-box.con-abono { background-color: #e0f2fe; color: #0369a1; border: 2px solid var(--alerta); }
 
-        .n-box.pago-completo { 
-            filter: none;
-            opacity: 1;
-            border: 2px solid var(--exito);
-            background-color: #dcfce7;
-        }
+        /* ADMIN */
+        #panelAdmin { display: none; margin-top: 30px; padding-top: 20px; border-top: 4px dashed var(--primario); }
+        .config-box { background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid var(--oro); margin-bottom: 20px; }
+        .config-box input { width: 100%; padding: 10px; margin: 8px 0; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; }
+        
+        .upload-area { background: #fff; border: 2px dashed var(--oro); padding: 15px; text-align: center; border-radius: 10px; margin: 10px 0; cursor: pointer; font-size: 13px; }
+        
+        .btn-ok { width: 100%; padding: 12px; background: var(--primario); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-admin { position: fixed; bottom: 15px; right: 15px; background: #000; color: #fff; border: none; padding: 10px 15px; border-radius: 20px; font-size: 12px; opacity: 0.6; cursor: pointer; z-index: 1000; }
 
-        /* PANEL ADMIN Y TABLAS */
-        #panelAdmin { display: none; margin-top: 30px; border-top: 5px double var(--primario); padding-top: 25px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
-        .stat-card { background: var(--fondo); padding: 15px; border-radius: 15px; border: 1px solid var(--borde); text-align: center; }
-        .stat-card b { display: block; font-size: 20px; color: var(--exito); }
-        .table-wrap { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 15px; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--borde); }
+        .btn-status { padding: 5px 8px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 10px; }
+        .st-paga { background: var(--exito); }
+        .st-debe { background: var(--error); }
+        .st-abono { background: var(--alerta); }
 
-        /* BOTONES Y MODAL */
-        .btn-status { padding: 6px 10px; border-radius: 8px; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 10px; }
-        .st-debe { background: var(--error); } .st-paga { background: var(--exito); } .st-abono { background: var(--alerta); }
-        .btn-wa-icon { background: var(--wa); color: white; padding: 6px 10px; border-radius: 6px; text-decoration: none; font-size: 14px; }
-        .overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .modal { background: var(--tarjeta); padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 8px 0; background: var(--fondo); color: var(--texto); border: 1px solid var(--borde); border-radius: 10px; }
-        .btn-ok { width: 100%; padding: 12px; background: var(--primario); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .edit-name { cursor: pointer; text-decoration: underline dotted; color: var(--primario); font-weight: 600; }
 
-        @media (max-width: 500px) { .grid-rifa { grid-template-columns: repeat(5, 1fr); } }
+        @media (max-width: 550px) { .grid-rifa { grid-template-columns: repeat(5, 1fr); } }
     </style>
 </head>
 <body>
 
+<button class="btn-admin" onclick="accesoAdmin()">⚙️ GESTIONAR</button>
+
 <div class="container">
     <header>
-        <h1>⚽ RIFA DE LA SELECCIÓN</h1>
-        <img src="camiseta.png" class="img-premio" alt="Camiseta Colombia Original">
+        <h1 id="disp-titulo">CARGANDO...</h1>
+        <div id="wrapper-img" class="img-premio-box"><img id="disp-img" src="" alt="Premio"></div>
         <div class="info-rifa">
-            <p>🎁 <b>CAMISETA ORIGINAL COLOMBIA 2026</b></p>
-            <p>🗓️ 16 de Mayo - Lotería de Boyacá</p>
-            <p class="highlight">Valor Boleta: $15.000</p>
-            <p>💳 Nequi/Daviplata: 3213648676</p>
+            <p>🎁 <b>PREMIO:</b> <span id="disp-premio">...</span></p>
+            <p>🗓️ <b>FECHA:</b> <span id="disp-fecha">...</span> - <b>LOTERÍA:</b> <span id="disp-loteria">...</span></p>
+            <p class="highlight">VALOR: $<span id="disp-precio">0</span></p>
+            <p>💳 <b>PAGOS:</b> <span id="disp-metodo">...</span></p>
         </div>
     </header>
 
     <div class="grid-rifa" id="tablero"></div>
 
     <div id="panelAdmin">
-        <h3 style="text-align:center; color:#b91c1c; margin:0;">🔐 PANEL DE ADMINISTRACIÓN</h3>
-    
-    <div style="text-align: center; margin: 15px 0;">
-        <button onclick="verificarGanador()" style="background: #f59e0b; color: white; border: none; padding: 10px 20px; border-radius: 12px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 10px rgba(245,158,11,0.3);">
-            🏆 VERIFICAR RESULTADO
-        </button>
-	<div class="stats-grid">
-    	    <div class="stat-card"><span>En Caja</span><b id="totalCaja">$0</b></div>
-            <div class="stat-card"><span>Pendiente</span><b id="totalPendiente">$0</b></div>
+        <h2 style="text-align:center; color:var(--oro); margin-bottom:10px;">🛡️ ADMINISTRACIÓN</h2>
+        
+        <button onclick="verificarGanador()" style="width:100%; padding:15px; background:var(--oro); border:none; color:white; font-weight:800; border-radius:12px; margin-bottom:20px; cursor:pointer; font-size:16px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">🏆 VERIFICAR GANADOR</button>
+
+        <div class="config-box">
+            <label style="font-size:12px; font-weight:bold;">AJUSTES GENERALES:</label>
+            <input type="text" id="cfg-titulo" placeholder="Título">
+            <input type="text" id="cfg-premio" placeholder="Nombre Premio">
+            <input type="number" id="cfg-precio" placeholder="Precio Boleta">
+            <input type="text" id="cfg-fecha" placeholder="Fecha">
+            <input type="text" id="cfg-loteria" placeholder="Lotería">
+            <input type="text" id="cfg-metodo" placeholder="Medios de Pago">
+            <input type="text" id="cfg-wa" placeholder="WhatsApp (Ej: 314...)">
+            
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <span id="upload-status">📷 Cambiar foto del premio</span>
+                <input type="file" id="fileInput" hidden accept="image/*" onchange="subirImagen(this)">
+            </div>
+            <button class="btn-ok" onclick="guardarConfig()" style="background:var(--exito);">💾 GUARDAR CAMBIOS</button>
         </div>
-        <div class="table-wrap">
-            <table>
-                <thead><tr><th>N°</th><th>Cliente</th><th>Abono</th><th>Estado</th><th>Acciones</th></tr></thead>
+
+        <div style="overflow-x:auto; background: white; padding: 10px; border-radius: 12px; border: 1px solid var(--borde);">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; min-width:400px;">
+                <thead>
+                    <tr style="text-align:left; border-bottom: 2px solid var(--borde);">
+                        <th style="padding:10px;">N°</th>
+                        <th>Cliente</th>
+                        <th>Abono</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
                 <tbody id="listaAdmin"></tbody>
             </table>
         </div>
+        <button onclick="location.reload()" style="margin-top:20px; width:100%; background:#64748b; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold;">SALIR DEL PANEL</button>
     </div>
 </div>
 
-<div id="modalCompra" class="overlay">
-    <div class="modal">
-        <h2 id="selNumTitle" style="color:var(--primario);">--</h2>
-        <input type="text" id="inNombre" placeholder="Nombre completo">
-        <input type="text" id="inTel" placeholder="WhatsApp">
-        <button class="btn-ok" onclick="guardarReserva()">¡GOL! Reservar</button>
-        <button onclick="cerrarModal()" style="background:none; border:none; color:var(--texto-secundario); cursor:pointer; margin-top:15px;">Cerrar</button>
+<div id="modalCompra" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:100; align-items:center; justify-content:center; backdrop-filter: blur(5px);">
+    <div style="background:white; padding:25px; border-radius:20px; width:85%; max-width:320px; text-align:center;">
+        <h2 id="selNumTitle" style="margin:0; color:var(--primario); font-size:28px;">--</h2>
+        <p style="font-size:14px; color:var(--texto-secundario);">Ingresa tus datos para apartar:</p>
+        <input type="text" id="inNombre" placeholder="Tu nombre completo" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ccc; border-radius:10px; box-sizing:border-box;">
+        <input type="text" id="inTel" placeholder="WhatsApp (Opcional)" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ccc; border-radius:10px; box-sizing:border-box;">
+        <button class="btn-ok" onclick="confirmarReserva()" style="font-size:16px;">RESERVAR YA</button>
+        <button onclick="document.getElementById('modalCompra').style.display='none'" style="border:none; background:none; margin-top:15px; color:gray; cursor:pointer; text-decoration:underline;">Cerrar</button>
     </div>
 </div>
-
 
 <script>
-    const PRECIO = 15000;
-    const MI_WHATSAPP = "3142447898"; 
-    
+    const CLAVE = "1234"; // TU CLAVE SECRETA
+
     const firebaseConfig = {
         apiKey: "AIzaSyD1du2MrDhQgb_ujJX3phKVefyUNAwI1XA",
         authDomain: "autorifa-f0375.firebaseapp.com",
@@ -177,123 +140,156 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    let numActual = null;
+    const storage = firebase.storage();
+    
     let localData = {};
+    let configActual = { precio: 0 };
+    let numTemp = "";
 
-    const isAdmin = new URLSearchParams(window.location.search).get('modo') === 'admin';
-    if (isAdmin) document.getElementById('panelAdmin').style.display = 'block';
+    function accesoAdmin() { if(prompt("Contraseña Admin:") === CLAVE) document.getElementById('panelAdmin').style.display='block'; }
 
+    // CARGAR CONFIG
+    db.ref('configuracion').on('value', snap => {
+        const val = snap.val() || {};
+        configActual = val;
+        document.getElementById('disp-titulo').innerText = val.titulo || "RIFA";
+        document.getElementById('disp-premio').innerText = val.premio || "---";
+        document.getElementById('disp-precio').innerText = (parseInt(val.precio) || 0).toLocaleString();
+        document.getElementById('disp-fecha').innerText = val.fecha || "---";
+        document.getElementById('disp-loteria').innerText = val.loteria || "---";
+        document.getElementById('disp-metodo').innerText = val.metodo || "---";
+        if(val.imgUrl) { document.getElementById('disp-img').src = val.imgUrl; document.getElementById('wrapper-img').style.display = 'block'; }
+        
+        document.getElementById('cfg-titulo').value = val.titulo || "";
+        document.getElementById('cfg-premio').value = val.premio || "";
+        document.getElementById('cfg-precio').value = val.precio || "";
+        document.getElementById('cfg-fecha').value = val.fecha || "";
+        document.getElementById('cfg-loteria').value = val.loteria || "";
+        document.getElementById('cfg-metodo').value = val.metodo || "";
+        document.getElementById('cfg-wa').value = val.wa || "";
+    });
+
+    // GENERAR TABLERO
     const tablero = document.getElementById('tablero');
     for(let i=0; i<=99; i++){
         let n = i.toString().padStart(2, '0');
-        let box = document.createElement('div');
-        box.className = 'n-box'; box.id = 'box-' + n; box.innerText = n;
-        box.onclick = () => { 
+        let div = document.createElement('div');
+        div.className = 'n-box'; div.id = 'n-' + n; div.innerText = n;
+        div.onclick = () => { 
             if(!localData[n]) { 
-                numActual=n; 
-                document.getElementById('selNumTitle').innerText="Número: "+n; 
+                numTemp=n; 
+                document.getElementById('selNumTitle').innerText="Número "+n; 
                 document.getElementById('modalCompra').style.display='flex'; 
             } 
         };
-        tablero.appendChild(box);
+        tablero.appendChild(div);
     }
 
-    function cerrarModal() { document.getElementById('modalCompra').style.display = 'none'; }
-
-    function guardarReserva() {
+    function confirmarReserva() {
         const nombre = document.getElementById('inNombre').value.trim();
         const tel = document.getElementById('inTel').value.trim();
-        if(!nombre || !tel) return alert("Llena todos los campos");
-        
-        db.ref('boletas/' + numActual).set({ nombre, tel, abono: 0 }).then(() => {
-            cerrarModal();
-            const msjAdmin = `✅ *NUEVA RESERVA*\n------------------\n🔢 Número: ${numActual}\n👤 Cliente: ${nombre}\n📱 Tel: ${tel}`;
-            const linkNotif = `https://wa.me/57${MI_WHATSAPP}?text=${encodeURIComponent(msjAdmin)}`;
-            document.getElementById('inNombre').value = ""; document.getElementById('inTel').value = "";
-            window.open(linkNotif, '_blank');
+        if(!nombre) return alert("Por favor ingresa un nombre");
+        db.ref('boletas/' + numTemp).set({ nombre, tel: tel||'', abono: 0 }).then(() => {
+            document.getElementById('modalCompra').style.display='none';
+            if(configActual.wa) window.open(`https://wa.me/57${configActual.wa}?text=Hola! Aparté el ${numTemp}`, '_blank');
         });
     }
 
-    db.ref('boletas').on('value', (snap) => {
-        const data = snap.val() || {};
-        localData = data;
-        let recaudado = 0;
-        document.querySelectorAll('.n-box').forEach(b => b.classList.remove('taken', 'pago-completo'));
+    // SINCRONIZAR BOLETAS
+    db.ref('boletas').on('value', snap => {
+        localData = snap.val() || {};
         const tbody = document.getElementById('listaAdmin');
         tbody.innerHTML = "";
+        
+        document.querySelectorAll('.n-box').forEach(b => b.classList.remove('taken', 'pago-completo', 'con-abono'));
 
-        Object.keys(data).sort().forEach(n => {
-            const d = data[n];
+        Object.keys(localData).sort().forEach(n => {
+            const d = localData[n];
             const abono = parseInt(d.abono) || 0;
-            recaudado += abono;
-            const el = document.getElementById('box-' + n);
+            const precio = parseInt(configActual.precio) || 0;
+            const el = document.getElementById('n-' + n);
+            
             if(el) {
                 el.classList.add('taken');
-                if(abono >= PRECIO) el.classList.add('pago-completo');
+                if(abono >= precio && precio > 0) el.classList.add('pago-completo');
+                else if(abono > 0) el.classList.add('con-abono');
             }
-            if(isAdmin) {
-                let btnClass = "st-debe", txt = "DEBE TODO";
-                if(abono >= PRECIO) { btnClass = "st-paga"; txt = "PAGADO"; }
-                else if(abono > 0) { btnClass = "st-abono"; txt = `$${abono.toLocaleString()}`; }
-                tbody.innerHTML += `
-                    <tr>
-                        <td><b>${n}</b></td>
-                        <td>${d.nombre}</td>
-                        <td>$${abono.toLocaleString()}</td>
-                        <td><button class="btn-status ${btnClass}" onclick="rotarEstado('${n}', ${abono})">${txt}</button></td>
-                        <td style="white-space:nowrap">
-                            <button class="btn-edit" onclick="editarNombre('${n}')">✏️</button>
-                            <button class="btn-wa-icon" onclick="notificarWA('${n}')">💬</button>
-                            <button class="btn-del" onclick="eliminar('${n}')">🗑️</button>
-                        </td>
-                    </tr>`;
-            }
+            
+            let statusBtn = `<button onclick="editarAbono('${n}')" class="btn-status st-debe">DEBE $</button>`;
+            if(abono >= precio && precio > 0) statusBtn = `<button onclick="editarAbono('${n}')" class="btn-status st-paga">PAGADO</button>`;
+            else if(abono > 0) statusBtn = `<button onclick="editarAbono('${n}')" class="btn-status st-abono">ABONÓ $</button>`;
+
+            tbody.innerHTML += `<tr>
+                <td style="padding:10px;"><b>${n}</b></td>
+                <td><span class="edit-name" onclick="editarNombre('${n}', '${d.nombre}')">${d.nombre}</span><br><small>${d.tel}</small></td>
+                <td>$${abono.toLocaleString()}</td>
+                <td>${statusBtn}</td>
+                <td><button onclick="borrar('${n}')" style="background:none; border:none; cursor:pointer;">🗑️</button></td>
+            </tr>`;
         });
-        document.getElementById('totalCaja').innerText = `$${recaudado.toLocaleString()}`;
-        document.getElementById('totalPendiente').innerText = `$${((Object.keys(data).length * PRECIO) - recaudado).toLocaleString()}`;
     });
 
-    function editarNombre(n) {
-        const d = localData[n];
-        const nuevoNombre = prompt(`Editar nombre para el número ${n}:`, d.nombre);
-        if (nuevoNombre !== null && nuevoNombre.trim() !== "") {
-            db.ref('boletas/' + n).update({ nombre: nuevoNombre.trim() });
-        }
+    // FUNCIONES ADMIN
+    function editarNombre(n, actual) {
+        const nuevo = prompt("Nuevo nombre para el número " + n + ":", actual);
+        if(nuevo !== null && nuevo.trim() !== "") db.ref('boletas/'+n).update({ nombre: nuevo.trim() });
     }
 
+    function editarAbono(n) {
+        const monto = prompt("¿Cuánto ha pagado en TOTAL por el número " + n + "?", localData[n].abono || 0);
+        if(monto !== null) db.ref('boletas/'+n).update({ abono: parseInt(monto) || 0 });
+    }
+
+    function borrar(n) { if(confirm("¿Deseas liberar el número " + n + "?")) db.ref('boletas/'+n).remove(); }
+
+    function guardarConfig() {
+        const nueva = {
+            titulo: document.getElementById('cfg-titulo').value,
+            premio: document.getElementById('cfg-premio').value,
+            precio: document.getElementById('cfg-precio').value,
+            fecha: document.getElementById('cfg-fecha').value,
+            loteria: document.getElementById('cfg-loteria').value,
+            metodo: document.getElementById('cfg-metodo').value,
+            wa: document.getElementById('cfg-wa').value
+        };
+        db.ref('configuracion').update(nueva).then(() => alert("¡Ajustes guardados!"));
+    }
+
+    function subirImagen(input) {
+        const file = input.files[0]; if(!file) return;
+        const status = document.getElementById('upload-status');
+        status.innerText = "⏳ Subiendo...";
+        const ref = storage.ref('img_' + Date.now());
+        ref.put(file).then(snap => snap.ref.getDownloadURL()).then(url => {
+            db.ref('configuracion').update({ imgUrl: url });
+            status.innerText = "✅ Foto cargada";
+        });
+    }
+
+    // VERIFICADOR DE GANADOR
     function verificarGanador() {
-        const numGanador = prompt("Ingrese las últimas 2 cifras del premio mayor:");
-        if (numGanador !== null) {
-            const n = numGanador.padStart(2, '0');
-            const ganador = localData[n];
-            if (ganador) {
-                const pago = (parseInt(ganador.abono) >= PRECIO) ? "✅ PAGADA" : "⚠️ DEBE ($" + ganador.abono + ")";
-                alert(`🎊 ¡GANADOR ENCONTRADO! 🎊\n\nNúmero: ${n}\nNombre: ${ganador.nombre}\nEstado: ${pago}\nTel: ${ganador.tel}`);
-                const filas = document.querySelectorAll('#listaAdmin tr');
-                filas.forEach(f => {
-                    if(f.cells[0].innerText === n) { f.style.background = "#fef3c7"; f.scrollIntoView({behavior:'smooth'}); }
-                });
-            } else { alert(`El número ${n} no ha sido vendido.`); }
+        const num = prompt("Escribe el número ganador (2 cifras):");
+        if(num === null || num.trim() === "") return;
+        
+        const nCalculado = num.padStart(2, '0');
+        const ganador = localData[nCalculado];
+
+        if(ganador) {
+            const precio = parseInt(configActual.precio) || 0;
+            const abono = parseInt(ganador.abono) || 0;
+            const estado = (abono >= precio) ? "✅ PAGADO TOTALMENTE" : "⚠️ DEBE (Abonó: $" + abono + ")";
+            
+            alert(
+                "🎊 ¡TENEMOS UN GANADOR! 🎊\n\n" +
+                "🔢 Número: " + nCalculado + "\n" +
+                "👤 Cliente: " + ganador.nombre + "\n" +
+                "📞 WhatsApp: " + (ganador.tel || "No registrado") + "\n" +
+                "💰 Estado: " + estado
+            );
+        } else {
+            alert("❌ El número " + nCalculado + " NO fue vendido. La rifa quedó desierta.");
         }
     }
-
-    function rotarEstado(n, actual) {
-        if(actual === 0) db.ref('boletas/' + n).update({ abono: PRECIO });
-        else if(actual >= PRECIO) {
-            const v = prompt(`¿Cuánto abonó el número ${n}?`, "10000");
-            if(v !== null) db.ref('boletas/' + n).update({ abono: parseInt(v) || 0 });
-        } else db.ref('boletas/' + n).update({ abono: 0 });
-    }
-
-    function notificarWA(n) {
-        const d = localData[n];
-        const abono = parseInt(d.abono) || 0;
-        const falta = PRECIO - abono;
-        let msj = (abono >= PRECIO) ? `¡Hola ${d.nombre}! Tu número ${n} está PAGADO.🍀` : `¡Hola ${d.nombre}! Recordatorio número ${n}. Pendiente: *$${falta.toLocaleString()}*.`;
-        window.open(`https://wa.me/57${d.tel.replace(/\D/g, '')}?text=${encodeURIComponent(msj)}`, '_blank');
-    }
-
-    function eliminar(n) { if(confirm(`¿Liberar el número ${n}?`)) db.ref('boletas/' + n).remove(); }
 </script>
 </body>
 </html>
