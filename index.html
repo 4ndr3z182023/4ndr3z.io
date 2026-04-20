@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rifa Pro | Gestión Completa</title>
+    <title>Rifa Pro | Gestión Financiera</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -29,45 +29,37 @@
         .highlight { color: var(--error); font-weight: 800; font-size: 22px; margin: 10px 0; }
 
         .grid-rifa { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; background: var(--borde); padding: 10px; border-radius: 15px; }
-        .n-box { aspect-ratio: 1; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; cursor: pointer; border: 1px solid #ccc; transition: 0.2s; }
-        .n-box:hover { transform: scale(1.05); z-index: 2; }
+        .n-box { aspect-ratio: 1; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; cursor: pointer; border: 1px solid #ccc; }
         
         .n-box.taken { background-color: #fee2e2; color: var(--error); border-color: var(--error); }
         .n-box.pago-completo { background-color: #dcfce7 !important; color: #166534 !important; border: 2px solid var(--exito) !important; }
         .n-box.con-abono { background-color: #e0f2fe; color: #0369a1; border: 2px solid var(--alerta); }
 
-        /* BOTONES */
-        .btn-admin { position: fixed; bottom: 15px; right: 15px; background: #000; color: #fff; border: none; padding: 10px 15px; border-radius: 20px; font-size: 12px; opacity: 0.6; cursor: pointer; z-index: 1000; }
-        .btn-compartir { 
-            position: fixed; bottom: 15px; left: 15px; 
-            background: var(--wa-color); color: white; border: none; 
-            padding: 12px 18px; border-radius: 50px; font-weight: bold; 
-            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4); 
-            cursor: pointer; z-index: 1000; display: flex; align-items: center; gap: 8px;
-            text-decoration: none; font-size: 14px;
-        }
+        /* RESUMEN FINANCIERO */
+        .resumen-caja { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .card-resumen { padding: 15px; border-radius: 12px; text-align: center; color: white; }
+        .card-recogido { background: var(--exito); }
+        .card-pendiente { background: var(--error); }
+        .resumen-val { font-size: 18px; font-weight: 800; display: block; }
+        .resumen-lab { font-size: 10px; text-transform: uppercase; opacity: 0.9; }
 
         #panelAdmin { display: none; margin-top: 30px; padding-top: 20px; border-top: 4px dashed var(--primario); }
         .config-box { background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid var(--oro); margin-bottom: 20px; }
         .config-box input { width: 100%; padding: 10px; margin: 8px 0; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; }
         
         .btn-ok { width: 100%; padding: 12px; background: var(--primario); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        
-        /* Estilos Tabla Admin */
-        table button { border: none; background: #e2e8f0; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; }
-        table button:hover { background: #cbd5e1; }
-        .btn-status { padding: 5px 8px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 10px; min-width: 60px; }
+        .btn-status { padding: 5px 8px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 10px; }
         .st-paga { background: var(--exito); } .st-debe { background: var(--error); } .st-abono { background: var(--alerta); }
+
+        .btn-admin { position: fixed; bottom: 15px; right: 15px; background: #000; color: #fff; border: none; padding: 10px 15px; border-radius: 20px; font-size: 12px; opacity: 0.6; cursor: pointer; z-index: 1000; }
+        .btn-compartir { position: fixed; bottom: 15px; left: 15px; background: var(--wa-color); color: white; border: none; padding: 12px 18px; border-radius: 50px; font-weight: bold; cursor: pointer; z-index: 1000; text-decoration: none; font-size: 14px; }
 
         @media (max-width: 550px) { .grid-rifa { grid-template-columns: repeat(5, 1fr); } }
     </style>
 </head>
 <body>
 
-<a id="btnCompartirWA" class="btn-compartir" href="#" target="_blank">
-    <span>📲 Compartir Rifa</span>
-</a>
-
+<a id="btnCompartirWA" class="btn-compartir" href="#" target="_blank">📲 Compartir Rifa</a>
 <button class="btn-admin" onclick="accesoAdmin()">⚙️ CONFIG</button>
 
 <div class="container">
@@ -86,7 +78,19 @@
 
     <div id="panelAdmin">
         <h2 style="text-align:center; color:var(--oro);">ADMINISTRACIÓN</h2>
-        <button onclick="verificarGanador()" style="width:100%; padding:15px; background:var(--oro); border:none; color:white; font-weight:800; border-radius:12px; margin-bottom:20px; cursor:pointer;">🏆 VERIFICAR GANADOR</button>
+        
+        <div class="resumen-caja">
+            <div class="card-resumen card-recogido">
+                <span class="resumen-lab">Recaudado (Abonos)</span>
+                <span class="resumen-val" id="total-recogido">$0</span>
+            </div>
+            <div class="card-resumen card-pendiente">
+                <span class="resumen-lab">Pendiente por Cobrar</span>
+                <span class="resumen-val" id="total-pendiente">$0</span>
+            </div>
+        </div>
+
+        <button onclick="verificarGanador()" style="width:100%; padding:15px; background:var(--oro); border:none; color:white; font-weight:800; border-radius:12px; margin-bottom:20px;">🏆 VERIFICAR GANADOR</button>
 
         <div class="config-box">
             <input type="text" id="cfg-titulo" placeholder="Título">
@@ -103,18 +107,12 @@
         <div style="overflow-x:auto;">
             <table style="width:100%; border-collapse:collapse; font-size:12px; background:white;">
                 <thead style="background:var(--borde);">
-                    <tr>
-                        <th style="padding:10px;">N°</th>
-                        <th>Cliente / Tel</th>
-                        <th>Abono</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
+                    <tr><th style="padding:10px;">N°</th><th>Cliente</th><th>Abono</th><th>Estado</th><th>Acción</th></tr>
                 </thead>
                 <tbody id="listaAdmin"></tbody>
             </table>
         </div>
-        <button onclick="location.reload()" style="margin-top:20px; width:100%; background:#64748b; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer;">SALIR</button>
+        <button onclick="location.reload()" style="margin-top:20px; width:100%; background:#64748b; color:white; border:none; padding:12px; border-radius:8px;">SALIR</button>
     </div>
 </div>
 
@@ -124,7 +122,7 @@
         <input type="text" id="inNombre" placeholder="Nombre completo" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ccc; border-radius:10px; box-sizing:border-box;">
         <input type="text" id="inTel" placeholder="WhatsApp" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ccc; border-radius:10px; box-sizing:border-box;">
         <button class="btn-ok" onclick="confirmarReserva()">RESERVAR</button>
-        <button onclick="document.getElementById('modalCompra').style.display='none'" style="border:none; background:none; margin-top:10px; color:gray; cursor:pointer;">Cerrar</button>
+        <button onclick="document.getElementById('modalCompra').style.display='none'" style="border:none; background:none; margin-top:10px; color:gray;">Cerrar</button>
     </div>
 </div>
 
@@ -160,12 +158,8 @@
         document.getElementById('disp-fecha').innerText = val.fecha || "---";
         document.getElementById('disp-loteria').innerText = val.loteria || "---";
         document.getElementById('disp-metodo').innerText = val.metodo || "---";
+        if(val.imgUrl) { document.getElementById('disp-img').src = val.imgUrl; document.getElementById('wrapper-img').style.display = 'block'; }
         
-        if(val.imgUrl) { 
-            document.getElementById('disp-img').src = val.imgUrl; 
-            document.getElementById('wrapper-img').style.display = 'block'; 
-        }
-
         const msjShare = `¡Hola! Participa en nuestra rifa: *${val.titulo || 'Gran Rifa'}*. El premio es: *${val.premio || 'Sorpresa'}*. Mira los números disponibles aquí: ${URL_RIFA}`;
         document.getElementById('btnCompartirWA').href = `https://wa.me/?text=${encodeURIComponent(msjShare)}`;
 
@@ -194,8 +188,6 @@
         if(!nombre) return alert("Nombre obligatorio");
         db.ref('boletas/' + numTemp).set({ nombre, tel: tel||'', abono: 0 }).then(() => {
             document.getElementById('modalCompra').style.display='none';
-            document.getElementById('inNombre').value = "";
-            document.getElementById('inTel').value = "";
             if(configActual.wa) window.open(`https://wa.me/57${configActual.wa}?text=¡Hola Aparté el ${numTemp} de tu Rifa Muchas Gracias!`, '_blank');
         });
     }
@@ -204,54 +196,55 @@
         localData = snap.val() || {};
         const tbody = document.getElementById('listaAdmin');
         tbody.innerHTML = "";
+        
+        let sumaRecogido = 0;
+        let sumaPendiente = 0;
+        const precioRifa = parseInt(configActual.precio) || 0;
+
         document.querySelectorAll('.n-box').forEach(b => b.classList.remove('taken', 'pago-completo', 'con-abono'));
         
         Object.keys(localData).sort().forEach(n => {
             const d = localData[n];
             const abono = parseInt(d.abono) || 0;
-            const precio = parseInt(configActual.precio) || 0;
             const el = document.getElementById('n-' + n);
             
+            // Cálculos financieros
+            sumaRecogido += abono;
+            sumaPendiente += (precioRifa - abono);
+
             if(el) {
                 el.classList.add('taken');
-                if(abono >= precio && precio > 0) el.classList.add('pago-completo');
+                if(abono >= precioRifa && precioRifa > 0) el.classList.add('pago-completo');
                 else if(abono > 0) el.classList.add('con-abono');
             }
 
             let st = `<button onclick="editarAbono('${n}')" class="btn-status st-debe">DEBE</button>`;
-            if(abono >= precio && precio > 0) st = `<button onclick="editarAbono('${n}')" class="btn-status st-paga">PAGÓ</button>`;
+            if(abono >= precioRifa && precioRifa > 0) st = `<button onclick="editarAbono('${n}')" class="btn-status st-paga">PAGÓ</button>`;
             else if(abono > 0) st = `<button onclick="editarAbono('${n}')" class="btn-status st-abono">ABONÓ</button>`;
             
-            tbody.innerHTML += `
-                <tr>
-                    <td style="padding:10px;"><b>${n}</b></td>
-                    <td>
-                        <div style="font-weight:600;">${d.nombre}</div>
-                        <div style="font-size:10px; color:var(--primario);">${d.tel || 'Sin número'}</div>
-                    </td>
-                    <td>$${abono}</td>
-                    <td>${st}</td>
-                    <td>
-                        <button onclick="editarCliente('${n}')" title="Editar Nombre/Tel">✏️</button>
-                        <button onclick="borrar('${n}')" title="Eliminar">🗑️</button>
-                    </td>
-                </tr>`;
+            tbody.innerHTML += `<tr>
+                <td style="padding:10px;">${n}</td>
+                <td>
+                    <b>${d.nombre}</b><br><small>${d.tel || ''}</small>
+                </td>
+                <td>$${abono}</td>
+                <td>${st}</td>
+                <td>
+                    <button onclick="editarCliente('${n}')">✏️</button>
+                    <button onclick="borrar('${n}')">🗑️</button>
+                </td>
+            </tr>`;
         });
+
+        // Actualizar el resumen visual
+        document.getElementById('total-recogido').innerText = "$" + sumaRecogido.toLocaleString();
+        document.getElementById('total-pendiente').innerText = "$" + (sumaPendiente > 0 ? sumaPendiente.toLocaleString() : 0);
     });
 
-    // --- NUEVA FUNCIÓN: EDITAR CLIENTE ---
     function editarCliente(n) {
-        const datos = localData[n];
-        const nuevoNombre = prompt("Editar nombre del cliente:", datos.nombre);
-        if (nuevoNombre === null) return;
-
-        const nuevoTel = prompt("Editar WhatsApp:", datos.tel || "");
-        if (nuevoTel === null) return;
-
-        db.ref('boletas/' + n).update({
-            nombre: nuevoNombre.trim() || "Sin nombre",
-            tel: nuevoTel.trim()
-        }).then(() => alert("Datos del número " + n + " actualizados"));
+        const nmb = prompt("Nuevo nombre:", localData[n].nombre);
+        const tel = prompt("Nuevo teléfono:", localData[n].tel);
+        if(nmb !== null && tel !== null) db.ref('boletas/'+n).update({ nombre: nmb, tel: tel });
     }
 
     function editarAbono(n) {
@@ -259,7 +252,7 @@
         if(m !== null) db.ref('boletas/'+n).update({ abono: parseInt(m) || 0 });
     }
 
-    function borrar(n) { if(confirm("¿Liberar el número " + n + "?")) db.ref('boletas/'+n).remove(); }
+    function borrar(n) { if(confirm("¿Liberar?")) db.ref('boletas/'+n).remove(); }
 
     function guardarConfig() {
         const n = {
@@ -272,21 +265,14 @@
             metodo: document.getElementById('cfg-metodo').value,
             wa: document.getElementById('cfg-wa').value
         };
-        db.ref('configuracion').update(n).then(() => alert("Configuración Guardada"));
+        db.ref('configuracion').update(n).then(() => alert("Guardado"));
     }
 
     function verificarGanador() {
-        const num = prompt("Introduce el número ganador (00-99):");
-        if(num) {
-            const formateado = num.padStart(2,'0');
-            if(localData[formateado]) {
-                alert("🎉 ¡GANADOR ENCONTRADO!\n\nNúmero: " + formateado + "\nNombre: " + localData[formateado].nombre + "\nTel: " + localData[formateado].tel);
-            } else {
-                alert("El número " + formateado + " no fue vendido.");
-            }
-        }
+        const num = prompt("Número:");
+        if(num && localData[num.padStart(2,'0')]) alert("Ganador: " + localData[num.padStart(2,'0')].nombre);
+        else if(num) alert("No vendido");
     }
 </script>
 </body>
 </html>
-
