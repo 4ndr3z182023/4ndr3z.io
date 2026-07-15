@@ -188,7 +188,7 @@
         if(!nombre) return alert("Nombre obligatorio");
         db.ref('boletas/' + numTemp).set({ nombre, tel: tel||'', abono: 0 }).then(() => {
             document.getElementById('modalCompra').style.display='none';
-            if(configActual.wa) window.open(`https://wa.me/57${configActual.wa}?text=¡Hola Aparté el ${numTemp} de tu Rifa Muchas Gracias!`, '_blank');
+            if(configActual.wa) window.open(`https://wa.me/57${configActual.wa}?text=¡Hola Aparté el ${numTemp} ${nombre} de tu Rifa Muchas Gracias!`, '_blank');
         });
     }
 
