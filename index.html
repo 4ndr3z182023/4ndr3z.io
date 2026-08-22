@@ -128,7 +128,11 @@
 
 <script>
     const CLAVE = "1234"; 
-    const URL_RIFA = "https://4ndr3z182023.github.io/4ndr3z.io/";
+
+    // --- LÓGICA MULTITENANT ---
+    // Extrae el ID de la URL (ej: tudominio.com/?id=rifa123). Si no hay, asigna 'demo'.
+    const urlParams = new URLSearchParams(window.location.search);
+    const RIFA_ID = urlParams.get('id') || 'demo';
 
     const firebaseConfig = {
         apiKey: "AIzaSyD1du2MrDhQgb_ujJX3phKVefyUNAwI1XA",
@@ -143,13 +147,20 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     
+    // Rutas dinámicas en Firebase agrupadas por el ID de la rifa
+    const refConfig = db.ref(`instancias/${RIFA_ID}/configuracion`);
+    const refBoletas = db.ref(`instancias/${RIFA_ID}/boletas`);
+
     let localData = {};
     let configActual = {};
     let numTemp = "";
 
-    function accesoAdmin() { if(prompt("Clave:") === CLAVE) document.getElementById('panelAdmin').style.display='block'; }
+    function accesoAdmin() { 
+        if(prompt("Clave:") === CLAVE) document.getElementById('panelAdmin').style.display='block'; 
+    }
 
-    db.ref('configuracion').on('value', snap => {
+    // Escuchar cambios de configuración para la rifa activa
+    refConfig.on('value', snap => {
         const val = snap.val() || {};
         configActual = val;
         document.getElementById('disp-titulo').innerText = val.titulo || "RIFA";
@@ -158,9 +169,14 @@
         document.getElementById('disp-fecha').innerText = val.fecha || "---";
         document.getElementById('disp-loteria').innerText = val.loteria || "---";
         document.getElementById('disp-metodo').innerText = val.metodo || "---";
-        if(val.imgUrl) { document.getElementById('disp-img').src = val.imgUrl; document.getElementById('wrapper-img').style.display = 'block'; }
+        if(val.imgUrl) { 
+            document.getElementById('disp-img').src = val.imgUrl; 
+            document.getElementById('wrapper-img').style.display = 'block'; 
+        }
         
-        const msjShare = `¡Hola! Participa en nuestra rifa: *${val.titulo || 'Gran Rifa'}*. El premio es: *${val.premio || 'Sorpresa'}*. Mira los números disponibles aquí: ${URL_RIFA}`;
+        // El enlace a compartir preserva el identificador de la rifa
+        const urlCompartir = `${window.location.origin}${window.location.pathname}?id=${RIFA_ID}`;
+        const msjShare = `¡Hola! Participa en nuestra rifa: *${val.titulo || 'Gran Rifa'}*. El premio es: *${val.premio || 'Sorpresa'}*. Mira los números disponibles aquí: ${urlCompartir}`;
         document.getElementById('btnCompartirWA').href = `https://wa.me/?text=${encodeURIComponent(msjShare)}`;
 
         document.getElementById('cfg-titulo').value = val.titulo || "";
@@ -173,12 +189,19 @@
         document.getElementById('cfg-wa').value = val.wa || "";
     });
 
+    // Renderizado del tablero 00-99
     const tablero = document.getElementById('tablero');
     for(let i=0; i<=99; i++){
         let n = i.toString().padStart(2, '0');
         let div = document.createElement('div');
         div.className = 'n-box'; div.id = 'n-' + n; div.innerText = n;
-        div.onclick = () => { if(!localData[n]) { numTemp=n; document.getElementById('selNumTitle').innerText="N° "+n; document.getElementById('modalCompra').style.display='flex'; } };
+        div.onclick = () => { 
+            if(!localData[n]) { 
+                numTemp=n; 
+                document.getElementById('selNumTitle').innerText="N° "+n; 
+                document.getElementById('modalCompra').style.display='flex'; 
+            } 
+        };
         tablero.appendChild(div);
     }
 
@@ -186,13 +209,17 @@
         const nombre = document.getElementById('inNombre').value.trim();
         const tel = document.getElementById('inTel').value.trim();
         if(!nombre) return alert("Nombre obligatorio");
-        db.ref('boletas/' + numTemp).set({ nombre, tel: tel||'', abono: 0 }).then(() => {
+        
+        refBoletas.child(numTemp).set({ nombre, tel: tel||'', abono: 0 }).then(() => {
             document.getElementById('modalCompra').style.display='none';
-            if(configActual.wa) window.open(`https://wa.me/57${configActual.wa}?text=¡Hola Aparté el ${numTemp} ${nombre} de tu Rifa Muchas Gracias!`, '_blank');
+            if(configActual.wa) {
+                window.open(`https://wa.me/57${configActual.wa}?text=¡Hola Aparté el ${numTemp} ${nombre} de tu Rifa Muchas Gracias!`, '_blank');
+            }
         });
     }
 
-    db.ref('boletas').on('value', snap => {
+    // Escuchar boletas reservadas/compradas
+    refBoletas.on('value', snap => {
         localData = snap.val() || {};
         const tbody = document.getElementById('listaAdmin');
         tbody.innerHTML = "";
@@ -208,7 +235,6 @@
             const abono = parseInt(d.abono) || 0;
             const el = document.getElementById('n-' + n);
             
-            // Cálculos financieros
             sumaRecogido += abono;
             sumaPendiente += (precioRifa - abono);
 
@@ -236,7 +262,6 @@
             </tr>`;
         });
 
-        // Actualizar el resumen visual
         document.getElementById('total-recogido').innerText = "$" + sumaRecogido.toLocaleString();
         document.getElementById('total-pendiente').innerText = "$" + (sumaPendiente > 0 ? sumaPendiente.toLocaleString() : 0);
     });
@@ -244,15 +269,17 @@
     function editarCliente(n) {
         const nmb = prompt("Nuevo nombre:", localData[n].nombre);
         const tel = prompt("Nuevo teléfono:", localData[n].tel);
-        if(nmb !== null && tel !== null) db.ref('boletas/'+n).update({ nombre: nmb, tel: tel });
+        if(nmb !== null && tel !== null) refBoletas.child(n).update({ nombre: nmb, tel: tel });
     }
 
     function editarAbono(n) {
         const m = prompt("Total abonado:", localData[n].abono);
-        if(m !== null) db.ref('boletas/'+n).update({ abono: parseInt(m) || 0 });
+        if(m !== null) refBoletas.child(n).update({ abono: parseInt(m) || 0 });
     }
 
-    function borrar(n) { if(confirm("¿Liberar?")) db.ref('boletas/'+n).remove(); }
+    function borrar(n) { 
+        if(confirm("¿Liberar?")) refBoletas.child(n).remove(); 
+    }
 
     function guardarConfig() {
         const n = {
@@ -265,7 +292,7 @@
             metodo: document.getElementById('cfg-metodo').value,
             wa: document.getElementById('cfg-wa').value
         };
-        db.ref('configuracion').update(n).then(() => alert("Guardado"));
+        refConfig.update(n).then(() => alert("Guardado con éxito en esta rifa"));
     }
 
     function verificarGanador() {
